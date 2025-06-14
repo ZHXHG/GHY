@@ -36,4 +36,11 @@
         android:icon="@drawable/ic_exit"
         android:title="@string/emulation_exit" />
 
+    <item
+        android:id="@+id/menu_stretch_fullscreen"
+        android:icon="@drawable/ic_stretch"
+        android:title="@string/stretch_to_fullscreen"
+        android:checkable="true"
+        tools:ignore="HardcodedText" />
+
 </menu>
