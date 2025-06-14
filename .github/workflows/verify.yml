@@ -4,6 +4,7 @@
 name: 'yuzu verify'
 
 on:
+  workflow_dispatch:  # 添加手动触发事件
   pull_request:
     branches: [ master ]
 env:
