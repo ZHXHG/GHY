@@ -32,9 +32,9 @@
         android:title="@string/emulation_input_overlay" />
 
     <!-- 新增全屏菜单项（无图标） -->
-    <item
+    <Button
         android:id="@+id/menu_fullscreen"
-        android:title="开启全屏" />  <!-- 直接使用文本而非字符串资源 -->
+        android:title="开启全屏" />
 
     <item
         android:id="@+id/menu_exit"
