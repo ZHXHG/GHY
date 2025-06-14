@@ -4,7 +4,6 @@
 package dev.suyu.suyu_emu.fragments
 
 import android.os.Bundle
-import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.activity.result.contract.ActivityResultContracts
@@ -31,8 +30,26 @@ import dev.suyu.suyu_emu.utils.GpuDriverHelper
 import dev.suyu.suyu_emu.utils.NativeConfig
 import dev.suyu.suyu_emu.utils.ViewUtils.updateMargins
 import dev.suyu.suyu_emu.utils.collect
-import java.io.File
 import java.io.IOException
+import android.app.ProgressDialog
+import android.app.DownloadManager
+import android.content.Context
+import android.net.Uri
+import android.os.Environment
+import android.widget.TextView
+import android.widget.Toast
+import android.widget.ProgressBar
+import androidx.appcompat.app.AlertDialog
+import java.io.File
+import java.util.Timer
+import java.util.TimerTask
+import android.view.LayoutInflater
+import android.view.WindowManager
+import android.content.BroadcastReceiver
+import android.content.IntentFilter
+import android.content.Intent
+import android.os.Handler
+import android.os.Looper
 
 class DriverManagerFragment : Fragment() {
     private var _binding: FragmentDriverManagerBinding? = null
@@ -40,6 +57,7 @@ class DriverManagerFragment : Fragment() {
 
     private val homeViewModel: HomeViewModel by activityViewModels()
     private val driverViewModel: DriverViewModel by activityViewModels()
+    private val handler = Handler(Looper.getMainLooper())
 
     private val args by navArgs<DriverManagerFragmentArgs>()
 
@@ -103,8 +121,153 @@ class DriverManagerFragment : Fragment() {
             getDriver.launch(arrayOf("application/zip"))
         }
 
+        fun downloadFile(context: Context, url: String, fileName: String, progressDialog: ProgressDialog): Long {
+    val downloadDir = context.getExternalFilesDir(null)?.let { File(it, "gpu_drivers") }
+    downloadDir?.mkdirs()
+
+    val request = DownloadManager.Request(Uri.parse(url)).apply {
+        setAllowedNetworkTypes(DownloadManager.Request.NETWORK_WIFI or DownloadManager.Request.NETWORK_MOBILE)
+        setDestinationUri(Uri.fromFile(File(downloadDir, fileName)))
+        setTitle(fileName)
+        setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
+    }
+
+    val dm = context.getSystemService(Context.DOWNLOAD_SERVICE) as? DownloadManager
+    val downloadId = dm?.enqueue(request) ?: -1
+
+    // 注册监听器来更新下载进度
+    val filter = IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE)
+    val receiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            val query = DownloadManager.Query().setFilterById(downloadId)
+            val cursor = dm?.query(query)
+            cursor?.use {
+                if (it.moveToFirst()) {
+                    val status = it.getInt(it.getColumnIndex(DownloadManager.COLUMN_STATUS))
+                    if (status == DownloadManager.STATUS_SUCCESSFUL) {
+                        // 下载成功
+                        progressDialog.dismiss()
+                        // 显示下载完成提示
+                        Toast.makeText(context, "下载完成", Toast.LENGTH_SHORT).show()
+
+                        // 获取下载的文件
+                        val downloadedFile = File(downloadDir, fileName)
+
+                        // 执行操作
+                        if (downloadedFile.exists() && downloadedFile.isFile) {
+                            val driverData = GpuDriverHelper.getMetadataFromZip(downloadedFile)
+                            val adapter = _binding?.listDrivers?.adapter as? DriverAdapter
+                            adapter?.apply {
+                                addItem(driverData.toDriver())
+                                selectItem(currentList.indices.last)
+                            }
+                            driverViewModel?.let { viewModel ->
+                                viewModel.onDriverAdded(Pair(downloadedFile.absolutePath, driverData))
+                                viewModel.showClearButton(!StringSetting.DRIVER_PATH.global)
+                            }
+                            // Show a message indicating processing completion
+                            Toast.makeText(context, "GPU驱动程序处理完成", Toast.LENGTH_SHORT).show()
+                        } else {
+                            // 如果没有找到驱动程序压缩文件，则显示相应的消息
+                            Toast.makeText(context, "未找到GPU驱动程序", Toast.LENGTH_SHORT).show()
+                        }
+                    } else if (status == DownloadManager.STATUS_FAILED) {
+                        // 下载失败
+                        progressDialog.dismiss()
+                        // 显示下载失败提示
+                        Toast.makeText(context, "下载失败", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
+        }
+    }
+    context.registerReceiver(receiver, filter)
+
+    // 定时更新进度条
+    val timer = Timer()
+    timer.scheduleAtFixedRate(object : TimerTask() {
+        override fun run() {
+            val query = DownloadManager.Query().setFilterById(downloadId)
+            val cursor = dm?.query(query)
+            cursor?.use {
+                if (it.moveToFirst()) {
+                    val bytesDownloaded = it.getInt(it.getColumnIndex(DownloadManager.COLUMN_BYTES_DOWNLOADED_SO_FAR))
+                    val bytesTotal = it.getInt(it.getColumnIndex(DownloadManager.COLUMN_TOTAL_SIZE_BYTES))
+                    val progress = (bytesDownloaded.toFloat() / bytesTotal.toFloat() * 100).toInt()
+                    progressDialog.progress = progress
+                }
+            }
+        }
+    }, 0, 1000) // 每秒钟更新一次
+
+    return downloadId
+        }
+
         binding.buttonDownload.setOnClickListener {
-            getDriver.launch(arrayOf("application/zip"))
+    // 加载自定义布局
+    val dialogView = LayoutInflater.from(requireContext()).inflate(R.layout.dialog_download, null)
+
+    // 获取布局中的文本视图
+    val textTitle1 = dialogView.findViewById<TextView>(R.id.text_title1)
+    val textDownload1 = dialogView.findViewById<TextView>(R.id.text_download1)
+    val textTitle2 = dialogView.findViewById<TextView>(R.id.text_title2)
+    val textDownload2 = dialogView.findViewById<TextView>(R.id.text_download2)
+    val textTitle3 = dialogView.findViewById<TextView>(R.id.text_title3)
+    val textDownload3 = dialogView.findViewById<TextView>(R.id.text_download3)
+
+    // 设置标题文本
+    textTitle1.text = "Turnip-24.1.0.adpkg_R18"
+    textTitle2.text = "Turnip-24.1.0.adpkg_R17"
+    textTitle3.text = "Turnip-24.1.0.adpkg_R16"
+
+    // 设置下载文本
+    textDownload1.setOnClickListener {
+        // 创建ProgressDialog
+        val progressDialog = ProgressDialog(requireContext())
+        progressDialog.setMessage("下载中...")
+        progressDialog.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL)
+        progressDialog.isIndeterminate = false
+        progressDialog.setCancelable(false)
+        
+        // 显示ProgressDialog
+        progressDialog.show()
+
+        val url = "https://github.com/K11MCH1/AdrenoToolsDrivers/releases/download/v24.1.0_R18/Turnip-24.1.0.adpkg_R18.zip"
+        val downloadId = downloadFile(requireContext(), url, "Turnip-24.1.0.adpkg_R18.zip", progressDialog)
+    }
+    textDownload2.setOnClickListener {
+        // 创建ProgressDialog
+        val progressDialog = ProgressDialog(requireContext())
+        progressDialog.setMessage("下载中...")
+        progressDialog.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL)
+        progressDialog.isIndeterminate = false
+        progressDialog.setCancelable(false)
+        
+        // 显示ProgressDialog
+        progressDialog.show()
+
+        val url = "https://github.com/K11MCH1/AdrenoToolsDrivers/releases/download/v24.1.0_R17/turnip-24.1.0.adpkg_R17-v2.zip"
+        val downloadId = downloadFile(requireContext(), url, "Turnip-24.1.0.adpkg_R17.zip", progressDialog)
+    }
+    textDownload3.setOnClickListener {
+        // 创建ProgressDialog
+        val progressDialog = ProgressDialog(requireContext())
+        progressDialog.setMessage("下载中...")
+        progressDialog.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL)
+        progressDialog.isIndeterminate = false
+        progressDialog.setCancelable(false)
+        
+        // 显示ProgressDialog
+        progressDialog.show()
+
+        val url = "https://github.com/K11MCH1/AdrenoToolsDrivers/releases/download/v24.1.0_R16/Turnip-24.1.0.adpkg_R16.zip"
+        val downloadId = downloadFile(requireContext(), url, "Turnip-24.1.0.adpkg_R16.zip", progressDialog)
+    }
+    // 创建并显示对话框
+    val dialogBuilder = AlertDialog.Builder(requireContext())
+    dialogBuilder.setView(dialogView)
+    val dialog = dialogBuilder.create()
+    dialog.show()
         }
 
         binding.listDrivers.apply {
