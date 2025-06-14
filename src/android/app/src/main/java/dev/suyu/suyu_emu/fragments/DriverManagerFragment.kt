@@ -50,6 +50,9 @@ import android.content.IntentFilter
 import android.content.Intent
 import android.os.Handler
 import android.os.Looper
+import android.content.DialogInterface
+import okhttp3.*
+import java.util.*
 
 class DriverManagerFragment : Fragment() {
     private var _binding: FragmentDriverManagerBinding? = null
@@ -156,15 +159,20 @@ class DriverManagerFragment : Fragment() {
                         // 执行操作
                         if (downloadedFile.exists() && downloadedFile.isFile) {
                             val driverData = GpuDriverHelper.getMetadataFromZip(downloadedFile)
-                            val adapter = _binding?.listDrivers?.adapter as? DriverAdapter
-                            adapter?.apply {
-                                addItem(driverData.toDriver())
-                                selectItem(currentList.indices.last)
+                            
+                            // 添加到列表并更新界面
+                            driverViewModel.onDriverAdded(Pair(downloadedFile.absolutePath, driverData))
+                            handler.post {
+                                if (_binding != null) {
+                                    val adapter = binding.listDrivers.adapter as DriverAdapter
+                                    adapter.addItem(driverData.toDriver())
+                                    adapter.selectItem(adapter.currentList.indices.last)
+                                    driverViewModel.showClearButton(!StringSetting.DRIVER_PATH.global)
+                                    binding.listDrivers
+                                        .smoothScrollToPosition(adapter.currentList.indices.last)
+                                }
                             }
-                            driverViewModel?.let { viewModel ->
-                                viewModel.onDriverAdded(Pair(downloadedFile.absolutePath, driverData))
-                                viewModel.showClearButton(!StringSetting.DRIVER_PATH.global)
-                            }
+                            
                             // Show a message indicating processing completion
                             Toast.makeText(context, "GPU驱动程序处理完成", Toast.LENGTH_SHORT).show()
                         } else {
@@ -179,26 +187,30 @@ class DriverManagerFragment : Fragment() {
                     }
                 }
             }
+            // 注销广播接收器
+            context?.unregisterReceiver(this)
         }
     }
     context.registerReceiver(receiver, filter)
-
-    // 定时更新进度条
+    
+    // 定义定时器以定期查询下载进度
     val timer = Timer()
     timer.scheduleAtFixedRate(object : TimerTask() {
         override fun run() {
+            // 查询下载进度
             val query = DownloadManager.Query().setFilterById(downloadId)
             val cursor = dm?.query(query)
             cursor?.use {
                 if (it.moveToFirst()) {
-                    val bytesDownloaded = it.getInt(it.getColumnIndex(DownloadManager.COLUMN_BYTES_DOWNLOADED_SO_FAR))
-                    val bytesTotal = it.getInt(it.getColumnIndex(DownloadManager.COLUMN_TOTAL_SIZE_BYTES))
-                    val progress = (bytesDownloaded.toFloat() / bytesTotal.toFloat() * 100).toInt()
+                    val bytesDownloaded = it.getLong(it.getColumnIndex(DownloadManager.COLUMN_BYTES_DOWNLOADED_SO_FAR))
+                    val bytesTotal = it.getLong(it.getColumnIndex(DownloadManager.COLUMN_TOTAL_SIZE_BYTES))
+                    val progress = (bytesDownloaded * 100 / bytesTotal).toInt()
+                    // 更新ProgressDialog的进度
                     progressDialog.progress = progress
                 }
             }
         }
-    }, 0, 1000) // 每秒钟更新一次
+    }, 0, 1000) // 每秒钟查询一次下载进度
 
     return downloadId
         }
@@ -229,6 +241,11 @@ class DriverManagerFragment : Fragment() {
         progressDialog.isIndeterminate = false
         progressDialog.setCancelable(false)
         
+        // 添加关闭按钮
+        progressDialog.setButton(DialogInterface.BUTTON_NEGATIVE, "关闭") { dialog, _ ->
+            dialog.dismiss() // 关闭ProgressDialog
+        }
+        
         // 显示ProgressDialog
         progressDialog.show()
 
@@ -243,6 +260,11 @@ class DriverManagerFragment : Fragment() {
         progressDialog.isIndeterminate = false
         progressDialog.setCancelable(false)
         
+        // 添加关闭按钮
+        progressDialog.setButton(DialogInterface.BUTTON_NEGATIVE, "关闭") { dialog, _ ->
+            dialog.dismiss() // 关闭ProgressDialog
+        }
+        
         // 显示ProgressDialog
         progressDialog.show()
 
@@ -256,6 +278,11 @@ class DriverManagerFragment : Fragment() {
         progressDialog.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL)
         progressDialog.isIndeterminate = false
         progressDialog.setCancelable(false)
+        
+        // 添加关闭按钮
+        progressDialog.setButton(DialogInterface.BUTTON_NEGATIVE, "关闭") { dialog, _ ->
+            dialog.dismiss() // 关闭ProgressDialog
+        }
         
         // 显示ProgressDialog
         progressDialog.show()

@@ -57,6 +57,10 @@ class AboutFragment : Fragment() {
             binding.root.findNavController().popBackStack()
         }
 
+        binding.buttonCheckUpdates?.setOnClickListener {
+            UpdateManager.checkAndInstallUpdate(requireContext())
+        }
+
         binding.imageLogo.setOnLongClickListener {
             Toast.makeText(
                 requireContext(),

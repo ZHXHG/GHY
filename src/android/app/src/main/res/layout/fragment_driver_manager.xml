@@ -42,7 +42,7 @@
     android:layout_width="wrap_content"
     android:layout_height="wrap_content"
     android:layout_gravity="bottom|end"
-    android:text="download"
+    android:text="下载"
     app:layout_constraintBottom_toTopOf="@id/button_install"
     app:layout_constraintEnd_toEndOf="@id/button_install"
     android:layout_marginBottom="16dp" /> <!-- 注意使用dp而不是sp作为距离单位 -->

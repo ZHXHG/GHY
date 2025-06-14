@@ -157,12 +157,7 @@ class SetupFragment : Fragment() {
                     R.string.install_prod_keys_warning_description,
                     R.string.install_prod_keys_warning_help,
                     {
-                        val file = File(DirectoryInitialization.userDirectory + "/keys/prod.keys")
-                        if (file.exists() && NativeLibrary.areKeysPresent()) {
-                            StepState.COMPLETE
-                        } else {
-                            StepState.INCOMPLETE
-                        }
+                        StepState.COMPLETE
                     }
                 )
             )
