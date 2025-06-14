@@ -372,6 +372,23 @@ if (APPLE)
         renderer_opengl/util_shaders.cpp
         renderer_opengl/util_shaders.h
     )
+
+    list(APPEND sources
+        renderer_metal/metal_cpp_impl.cpp
+        renderer_metal/mtl_buffer_cache.cpp
+        renderer_metal/mtl_buffer_cache_base.cpp
+        renderer_metal/mtl_command_recorder.cpp
+        renderer_metal/mtl_compute_pipeline.cpp
+        renderer_metal/mtl_device.cpp
+        renderer_metal/mtl_graphics_pipeline.cpp
+        renderer_metal/mtl_pipeline_cache.cpp
+        renderer_metal/mtl_rasterizer.cpp
+        renderer_metal/mtl_staging_buffer_pool.cpp
+        renderer_metal/mtl_swap_chain.cpp
+        renderer_metal/mtl_texture_cache.cpp
+        renderer_metal/mtl_texture_cache_base.cpp
+        renderer_metal/renderer_metal.cpp
+    )
 endif()
 
 add_library(video_core STATIC ${sources})
@@ -390,6 +407,10 @@ target_link_options(video_core PRIVATE ${FFmpeg_LDFLAGS})
 add_dependencies(video_core host_shaders)
 target_include_directories(video_core PRIVATE ${HOST_SHADERS_INCLUDE})
 target_link_libraries(video_core PRIVATE sirit Vulkan::Headers Vulkan::UtilityHeaders GPUOpen::VulkanMemoryAllocator)
+
+if (APPLE)
+    target_link_libraries(video_core PRIVATE metal-cpp)
+endif()
 
 if (ENABLE_NSIGHT_AFTERMATH)
     if (NOT DEFINED ENV{NSIGHT_AFTERMATH_SDK})
@@ -425,6 +446,11 @@ else()
 
     # VMA
     set_source_files_properties(vulkan_common/vma.cpp PROPERTIES COMPILE_OPTIONS "-Wno-conversion;-Wno-unused-variable;-Wno-unused-parameter;-Wno-missing-field-initializers")
+
+    # Get around GCC failing with intrinsics in Debug
+    if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_BUILD_TYPE MATCHES "Debug")
+        set_source_files_properties(host1x/vic.cpp PROPERTIES COMPILE_OPTIONS "-O2")
+    endif()
 endif()
 
 if (ARCHITECTURE_x86_64)

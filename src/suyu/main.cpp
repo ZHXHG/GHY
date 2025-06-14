@@ -3800,6 +3800,8 @@ void GMainWindow::OnToggleGraphicsAPI() {
     } else {
 #ifdef HAS_OPENGL
         api = Settings::RendererBackend::OpenGL;
+#elif __APPLE__
+        api = Settings::RendererBackend::Metal;
 #else
         api = Settings::RendererBackend::Null;
 #endif
@@ -5080,7 +5082,7 @@ int main(int argc, char* argv[]) {
 
     // Fix the Wayland appId. This needs to match the name of the .desktop file without the .desktop
     // suffix.
-    QGuiApplication::setDesktopFileName(QStringLiteral("org.suyu_emu.suyu"));
+    QGuiApplication::setDesktopFileName(QStringLiteral("dev.suyu_emu.suyu"));
 #endif
 
     SetHighDPIAttributes();

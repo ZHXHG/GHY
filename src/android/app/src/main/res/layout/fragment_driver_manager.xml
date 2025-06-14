@@ -36,15 +36,28 @@
             app:layout_behavior="@string/appbar_scrolling_view_behavior" />
 
     </androidx.coordinatorlayout.widget.CoordinatorLayout>
+    
+    <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
+    android:id="@+id/button_download"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:layout_gravity="bottom|end"
+    android:text="download"
+    app:layout_constraintBottom_toTopOf="@id/button_install"
+    app:layout_constraintEnd_toEndOf="@id/button_install"
+    android:layout_marginBottom="16dp" /> <!-- 注意使用dp而不是sp作为距离单位 -->
 
     <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
-        android:id="@+id/button_install"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="bottom|end"
-        android:text="@string/install"
-        app:icon="@drawable/ic_add"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
+    android:id="@+id/button_install"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:layout_gravity="bottom|end"
+    android:text="@string/install"
+    app:icon="@drawable/ic_add"
+    app:layout_constraintBottom_toBottomOf="parent"
+    app:layout_constraintEnd_toEndOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
+
+
+
