@@ -78,6 +78,11 @@ class EmulationActivity : AppCompatActivity(), SensorEventListener {
         ThemeHelper.setTheme(this)
 
         super.onCreate(savedInstanceState)
+        setContentView(R.layout.menu_in_game)
+
+        findViewById<Button>(R.id.menu_fullscreen).setOnClickListener {
+           enableFullscreenImmersive()
+        }
 
         InputHandler.updateControllerData()
         val players = NativeConfig.getInputSettings(true)
