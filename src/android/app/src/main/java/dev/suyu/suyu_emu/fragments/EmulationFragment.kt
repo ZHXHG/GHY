@@ -536,14 +536,11 @@ class EmulationFragment : Fragment(), SurfaceHolder.Callback {
                 val availableMegs = mi.availMem / 1048576L // Convert bytes to megabytes
                 
                 if (_binding != null) {
-                    // 设置文本内容，但隐藏cpuBackend和gpuDriver
+                    // 完全不包含cpuBackend和gpuDriver的文本内容
                     binding.showFpsText.text = String.format(
-                        "FPS: %.1f\nMEM: %d MB\n%s/%s",
-                        perfStats[FPS], availableMegs, cpuBackend, gpuDriver
+                        "FPS: %.1f\nMEM: %d MB",
+                        perfStats[FPS], availableMegs
                     )
-                    // 隐藏cpuBackend和gpuDriver的文本内容
-                    binding.showFpsText.text = binding.showFpsText.text.toString().replace("/${cpuBackend}", "")
-                    binding.showFpsText.text = binding.showFpsText.text.toString().replace("/${gpuDriver}", "")
                 }
                 perfStatsUpdateHandler.postDelayed(perfStatsUpdater!!, 800)
             }
