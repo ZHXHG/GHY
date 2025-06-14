@@ -485,7 +485,6 @@
     <string name="touchscreen">触摸屏</string>
     <string name="lock_drawer">锁定侧边菜单</string>
     <string name="unlock_drawer">解锁侧边菜单</string>
-    <string name="stretch_to_fullscreen">拉伸至全屏</string>
 
     <string name="load_settings">正在载入设定…</string>
 
